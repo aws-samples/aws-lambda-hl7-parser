@@ -1,11 +1,6 @@
-## My Project
+## AWS Lambda HL7 Parser
 
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+This Python AWS Lambda function pops incoming HL7 messages from an AWS SQS FIFO queue and parses them into a JSON object. It parses Segments, Elements and Fields. Component, sub components and repetition functionality is not currently supported.
 
 ## Security
 
