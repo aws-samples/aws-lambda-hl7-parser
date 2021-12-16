@@ -1,59 +1,57 @@
+#Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+Purpose
+
+Gather geo-coordinates based on an incoming address_line
+
+"""
+
 import boto3
 import botocore
 import json
-import logging
-import os
-import time
+
 
 def lambda_handler(event, context):
     
-    print(event)
+    principal       = event.get("requestContext", {}).get("identity", {}).get("userArn", "unknown")
+    address         = event.get("address_line", "")
+    municipality    = event.get("municipality_name", "")
+    state           = event.get("state_code", "")
+    postal          = event.get("post_code", "")
+    text            = " ".join([ address, municipality, state, postal ])
     
     index_name="Canada"
-    datasource="Esri"
-    pricing='RequestBasedUsage'
-
     country_code = "CAN"
     
     location = boto3.client("location", config=botocore.config.Config(user_agent="Amazon Lambda"))
 
     try:
+        response = location.search_place_index_for_text(IndexName=index_name, FilterCountries=[country_code], Text=text)
+        
+        data = response["Results"]
+        if len(data) >= 1:
+            point = data[0]["Place"]["Geometry"]["Point"]
+            label = data[0]["Place"]["Label"]
             
-            text = ("%s, %s %s %s" % (event["address_line"], event["municipality_name"], event["state_code"], event["post_code"]))
-            response = location.search_place_index_for_text(IndexName=index_name, FilterCountries=[country_code], Text=text)
+            response = {
+                "Longitude": point[0],
+                "Latitude": point[1],
+                "Label": label
+            }
+        else:
+            response = {
+                "Error": "No geocoding results found"
+            }
             
-            data = response["Results"]
-            if len(data) >= 1:
-                point = data[0]["Place"]["Geometry"]["Point"]
-                label = data[0]["Place"]["Label"]
-                
-                
-                response = {
-                    "Longitude": point[0],
-                    "Latitude": point[1],
-                    "Label": label,
-                    "MultipleMatch": False
-                }
-                
-                if len(data) > 1:
-                    response["MultipleMatch"] = True
-            else:
-                
-                
-                response = {
-                    "Error": "No geocoding results found"
-                }
     except Exception as e:
-        response ={
-            "Exception": str(e)
+        print(f"User {principal} requested \"{text}\", but raised unexpected exception {str(e)}")
+        response = {
+                    "Exception": str(e)
         }
+        return response
     
-    print(str(response["Latitude"]) + "," + str(response["Longitude"]))
+    print(f"User {principal} issued a request with the following parameters {text} and returned {response}")
 
-    return str(response["Latitude"]) + "," + str(response["Longitude"])
-    
-    # TODO implement
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
-    }
+    return response
