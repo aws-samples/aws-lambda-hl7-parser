@@ -30,9 +30,9 @@ ses_client = boto3.client('ses')
 
 #main function invoked by lambda
 def lambda_handler(event, context):
-
+    
     principal = event.get("requestContext", {}).get("identity", {}).get("userArn", "unknown")
-
+    
     #HL7 segments that will be parsed into JSON
     scopedSegments = ['MSH','EVN','PID','PV1','PD1','OBX']
     
@@ -108,6 +108,10 @@ def lambda_handler(event, context):
             charset)
         
     maskedEmail = maskEmail(providerEmail)
+    
+    if principal=='unknown':
+        principal = record.get("eventSourceARN","unknown")
+    
     print(f"User {principal} issued a notification request for the following Hl7 message {msgId} and the following destination {maskedEmail}")
         
     return {
