@@ -41,6 +41,9 @@ def lambda_handler(event, context):
     #parse incoming HL7 message and create a JSON object
     for record in event['Records']:
         
+        if principal=='unknown':
+            principal = record.get("eventSourceARN","unknown")
+        
         msg = parse_message(record["body"].replace('\n', '\r').replace('^^','^""^'))
 
         parsedJsonMessage = {}
@@ -109,8 +112,6 @@ def lambda_handler(event, context):
         
     maskedEmail = maskEmail(providerEmail)
     
-    if principal=='unknown':
-        principal = record.get("eventSourceARN","unknown")
     
     print(f"User {principal} issued a notification request for the following Hl7 message {msgId} and the following destination {maskedEmail}")
         
@@ -143,7 +144,8 @@ Medications: %s""" % (patLastName,patFirstName,eventType,facility,providerLastNa
         ses_client.send_email(Destination=dest,Message=msg,Source=sender)
         
     except Exception as err:
-        print('Error sending provider notification: ' + str(err) )
+        maskedEmail = maskEmail(providerEmail)
+        print(f"A notification for {maskedEmail} raised unexpected exception {str(err)}")
         
         
 def discoverConditionsMedications(admissionNotes,jsonDoc):
