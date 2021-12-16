@@ -16,7 +16,7 @@ import json
 import boto3
 from hl7apy.parser import parse_message
 from hl7apy.core import Segment
-from botocore.exceptions import ClientError
+
 
 #email address to be used to send notifications
 sender = os.environ['sender']
