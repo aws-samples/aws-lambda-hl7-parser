@@ -46,6 +46,9 @@ def lambda_handler(event, context):
             }
             
     except Exception as e:
+        #Consider implementing custom Amazon CloudWatch metrics to record specific application errors. 
+        #You can view statistical graphs and trigger alerts for your published metrics with the AWS Management Console. 
+        
         print(f"User {principal} requested \"{text}\", but raised unexpected exception {str(e)}")
         response = {
                     "Exception": str(e)
