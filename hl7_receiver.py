@@ -89,10 +89,7 @@ def lambda_handler(event, context):
             admissionNotes,
             addressEnrichedJson
         )    
-        
-        medicalConditions   =""
-        medications         =""
-        
+
         #prepare conditions and medications strings for email notification
         medicalConditions = ", ".join(updatedJsonMessage.get("conditions",[]))
         medications = ", ".join(updatedJsonMessage.get("medications",[]))
@@ -110,16 +107,8 @@ def lambda_handler(event, context):
             medications,
             charset)
         
-    maskedEmail = maskEmail(providerEmail)
-    
-    
-    print(f"User {principal} issued a notification request for the following Hl7 message {msgId} and the following destination {maskedEmail}")
-        
-    return {
-        'statusCode': 200,
-        'body': 'OK'
-    }
-    
+    print(f"Facility {facility} and user {principal} issued a notification request for the following Hl7 message {msgId} and the following destination {providerEmail}")
+
     
 def sendEmailNotification(patLastName, patFirstName,eventType,facility,providerLastName,providerFirstName,providerEmail,conditions,medications,charset):
     
@@ -144,8 +133,11 @@ Medications: %s""" % (patLastName,patFirstName,eventType,facility,providerLastNa
         ses_client.send_email(Destination=dest,Message=msg,Source=sender)
         
     except Exception as err:
-        maskedEmail = maskEmail(providerEmail)
-        print(f"A notification for {maskedEmail} raised unexpected exception {str(err)}")
+        #Consider implementing custom Amazon CloudWatch metrics to record specific application errors. 
+        #You can view statistical graphs and trigger alerts for your published metrics with the AWS Management Console. 
+        
+        print(f"A notification for {providerEmail} from facility {facility} raised unexpected exception {str(err)}")
+        raise
         
         
 def discoverConditionsMedications(admissionNotes,jsonDoc):
@@ -166,6 +158,9 @@ def discoverConditionsMedications(admissionNotes,jsonDoc):
             if entity["Category"] == 'MEDICAL_CONDITION':
                 jsonDoc["conditions"].append(entity["Text"])
     except Exception as err:
+        #Consider implementing custom Amazon CloudWatch metrics to record specific application errors. 
+        #You can view statistical graphs and trigger alerts for your published metrics with the AWS Management Console.
+        
         print("Error parsing comprehend response: " + str(err))
     finally:
         return jsonDoc
@@ -175,9 +170,7 @@ def discoverAddress(patAddressLine,patAddressCity,patAddressProvince,patAddressP
     #invoke Amazon Location Services and gather geo coordinates based on patient address
     #this is an optional step but can add value to geographically locate patients
     #in the event of an issue, the idea is to keep going with the notification
-        
-    geoEvent={}
-    
+
     try:
         geoEvent = {
             "address_line": patAddressLine,
@@ -195,11 +188,9 @@ def discoverAddress(patAddressLine,patAddressCity,patAddressProvince,patAddressP
         resp = json.loads(geo_response["Payload"].read().decode())
         jsonDoc.update({"location_geo": str(resp.get('Latitude',"0.0")) + "," + str(resp.get('Longitude',"0.0"))})
     except Exception as err:
+        #Consider implementing custom Amazon CloudWatch metrics to record specific application errors. 
+        #You can view statistical graphs and trigger alerts for your published metrics with the AWS Management Console.
+        
         print("Issues parsing the address: " + str(err))
     finally:
         return jsonDoc
-        
-def maskEmail(providerEmail):
-    lo = providerEmail.find('@')
-    if lo>0:
-        return providerEmail[0]+'********'+providerEmail[lo-1:]
