@@ -5,7 +5,7 @@
 Purpose
 
 When configured as an AWS SQS destination, this Python AWS Lambda function pops 
-incoming HL7 messages from an AWS SQS FIFO queue and parses them into a JSON object. 
+incoming HL7 messages from an Amazon SQS queue and parses them into a JSON object. 
 It parses Segments, Elements and Fields. Component, sub components and repetition 
 functionality is not currently supported.
 
